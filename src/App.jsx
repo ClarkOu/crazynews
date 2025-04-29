@@ -197,7 +197,7 @@ function App() {
   
   return (
     <Router>
-      <Routes>
+      <Routes basename="/crazynews">
         <Route path="/" element={<MainContent />} />
         <Route path="/debug-api" element={<ApiDebugTool />} />
         <Route path="/crawler" element={<UrlCrawler />} />
