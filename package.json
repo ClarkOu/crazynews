@@ -1,6 +1,7 @@
 {
     "name": "news-minialist-frontend",
     "version": "0.1.0",
+    "homepage": "https://clarkou.github.io/crazynews", 
     "private": true,
     "dependencies": {
         "date-fns": "^4.1.0",
