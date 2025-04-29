@@ -1,0 +1,61 @@
+name: Deploy Frontend to GitHub Pages
+
+on:
+  # 当代码推送到 main 分支时触发
+  push:
+    branches:
+      - main # 或者你的主分支名称
+  # 允许手动触发
+  workflow_dispatch:
+
+# 设置 GITHUB_TOKEN 的权限，允许部署到 GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 只允许一个并发部署，跳过正在运行和等待中的任务队列
+# 但是允许新的推送取消正在运行的部署
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20 # 可以根据你的项目需要调整 Node.js 版本
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json # 指向你的 package-lock.json
+
+      - name: Install dependencies
+        run: npm ci # 使用 ci 更适合 CI 环境
+        working-directory: ./frontend # 指定在 frontend 目录下运行
+
+      - name: Build React App
+        # 在构建时注入环境变量 REACT_APP_API_URL
+        # 它会读取你在 GitHub 仓库设置中定义的同名变量
+        run: REACT_APP_API_URL=${{ vars.REACT_APP_API_URL }} npm run build
+        working-directory: ./frontend # 指定在 frontend 目录下运行
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # 指定上传 React 构建输出的目录
+          path: './frontend/build'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
