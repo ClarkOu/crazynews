@@ -1,6 +1,7 @@
 // src/App.jsx
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import MainContent from './components/MainContent'; 
 import './App.css';
 import Layout from './components/Layout';
 import NewsCard from './components/NewsCard';
