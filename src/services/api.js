@@ -26,7 +26,11 @@ export const fetchNews = async (params = {}) => {
   logApiCall('GET', url, params);
   
   try {
-    const response = await fetch(url);
+    const response = await fetch(url,{
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+      }
+    });
     console.log('📡 API响应状态:', response.status);
     
     if (!response.ok) {
@@ -50,7 +54,11 @@ export const fetchNewsDetail = async (id) => {
   logApiCall('GET', url);
   
   try {
-    const response = await fetch(url);
+    const response = await fetch(url,{
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+      }
+    });
     console.log('📡 API响应状态:', response.status);
     
     if (!response.ok) {
@@ -74,7 +82,11 @@ export const fetchCategories = async () => {
   logApiCall('GET', url);
   
   try {
-    const response = await fetch(url);
+    const response = await fetch(url,{
+      headers: {
+        'ngrok-skip-browser-warning': 'true'
+      }
+    });
     console.log('📡 API响应状态:', response.status);
     
     if (!response.ok) {
