@@ -38,8 +38,8 @@ jobs:
         run: npm ci 
 
       - name: Build React App
-        # --- 修改：移除 working-directory，在根目录运行 ---
-        run: REACT_APP_API_URL=${{ vars.REACT_APP_API_URL }} npm run build
+        # --- 修改：添加 CI=false ---
+        run: CI=false REACT_APP_API_URL=${{ vars.REACT_APP_API_URL }} npm run build
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
