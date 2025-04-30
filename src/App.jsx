@@ -84,7 +84,17 @@ const MainContent = ({
           <button 
             onClick={loadMore} 
             className="load-more-button"
-            style={{ /* ... styles ... */ }}
+            style={{ 
+              display: 'block', 
+              width: '100%', 
+              padding: '0.8rem', 
+              marginTop: '1.5rem',
+              backgroundColor: 'var(--accent)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '0.95rem' }}
           >
             加载更多
           </button>
