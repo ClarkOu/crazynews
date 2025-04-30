@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // 导入 useCallback
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import NewsCard from './components/NewsCard';
@@ -6,11 +6,10 @@ import FilterPanel from './components/FilterPanel';
 import ApiDebugTool from './components/ApiDebugTool';
 import UrlCrawler from './components/UrlCrawler';
 import AdminPanel from './components/AdminPanel';
-import { fetchNews, fetchCategories } from './services/api'; // 确保导入
+import { fetchNews, fetchCategories } from './services/api'; 
 import './App.css';
 
-// --- 1. 定义 MainContent 在 App 外部 ---
-// 它现在接收 props
+// --- MainContent 定义保持不变 ---
 const MainContent = ({
   news,
   loading,
@@ -21,20 +20,18 @@ const MainContent = ({
   filters,
   handleFilterChange,
   handleCategoryChange,
-  loadMore
+  loadMore,
+  displayCount, // 传递 displayCount 用于调试或显示
+  allNewsCount // 传递 allNewsCount 用于调试或显示
 }) => {
   return (
     <Layout>
-      {/* 1. 恢复 FilterPanel 并传递必要的 props */}
       <FilterPanel 
          filters={filters} 
          onFilterChange={handleFilterChange} 
       />
-
-      {/* 2. 恢复分类导航的原始类名 */}
       <div className="category-nav" style={{ marginBottom: '1.5rem', flexWrap: 'wrap', display: 'flex', gap: '0.5rem' }}>
          <button 
-           // 使用 category-btn
            className={`category-btn ${category === 'all' ? 'active' : ''}`}
            onClick={() => handleCategoryChange('all')}>
            全部
@@ -42,7 +39,6 @@ const MainContent = ({
          {availableCategories.map(cat => (
            <button 
              key={cat.id} 
-             // 使用 category-btn
              className={`category-btn ${category === cat.name ? 'active' : ''}`}
              onClick={() => handleCategoryChange(cat.name)}>
              {cat.name}
@@ -52,8 +48,12 @@ const MainContent = ({
           
       {error && <div style={{ color: 'red', marginBottom: '1rem' }}>{error}</div>}
 
+      {/* 可以选择性显示调试信息 */}
+      {/* <div style={{fontSize: '0.8rem', color: 'gray', marginBottom: '1rem'}}>
+        显示: {displayCount} / {allNewsCount} | 还有更多: {hasMore ? '是' : '否'} | 加载中: {loading ? '是' : '否'}
+      </div> */}
+
       <div className="news-container">
-        {/* 首次加载时显示骨架屏 */}
         {loading && news.length === 0 ? (
           <div className="loading-skeleton">
             {[...Array(5)].map((_, i) => (
@@ -76,14 +76,14 @@ const MainContent = ({
             />
           ))
         ) : (
-          // 没有新闻且不在加载中
           !loading && news.length === 0 && <div>暂无新闻</div>
         )}
-        {/* 加载更多按钮 */}
-        {!loading && news.length > 0 && hasMore && (
+        {/* 加载更多按钮: loading 时禁用 */}
+        {!loading && hasMore && (
           <button 
             onClick={loadMore} 
             className="load-more-button"
+            disabled={loading} // 加载时禁用按钮
             style={{ 
               display: 'block', 
               width: '100%', 
@@ -99,112 +99,123 @@ const MainContent = ({
             加载更多
           </button>
         )}
-        {/* 加载时在底部显示提示 */}
-        {loading && filters.skip > 0 && (
-          <div style={{textAlign: 'center', padding: '1rem', color: 'var(--text-secondary)'}}>
-            正在加载更多新闻...
-          </div>
-        )}
+        {/* 移除底部的加载提示，因为现在加载是全局的 */}
       </div>
     </Layout>
   );
-}; // --- 结束 MainContent 定义 ---
+}; 
 
 
-// --- App 组件现在包含状态和逻辑 ---
 function App() {
-  // --- 2. 将状态和逻辑移到 App ---
-  const [news, setNews] = useState([]);
+  const [allNews, setAllNews] = useState([]); // 存储所有获取到的新闻
+  const [news, setNews] = useState([]); // 存储当前显示的新闻
+  const [displayCount, setDisplayCount] = useState(20); // 控制显示数量
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null); 
   const [category, setCategory] = useState('all');
   const [availableCategories, setAvailableCategories] = useState([]);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMore, setHasMore] = useState(false); // 初始为 false，获取数据后判断
+  
+  // 移除 filters 中的 limit 和 skip
   const [filters, setFilters] = useState({
     minScore: 0,
     days: 7,
-    limit: 20,
-    skip: 0
   });
   
-  const handleFilterChange = (newFilters) => {
+  const ITEMS_PER_PAGE = 20; // 定义每次加载更多显示的数量
+
+  // 使用 useCallback 包装 handleFilterChange
+  const handleFilterChange = useCallback((newFilters) => {
     console.log("过滤器变化:", newFilters);
-    setFilters({ ...newFilters, skip: 0 }); 
+    setFilters({ // 只保留 minScore 和 days
+      minScore: newFilters.minScore,
+      days: newFilters.days,
+    }); 
+    // 重置状态以触发 useEffect 重新加载
+    setAllNews([]); 
     setNews([]); 
+    setDisplayCount(ITEMS_PER_PAGE); 
     setLoading(true); 
-  };
+    setHasMore(false);
+  }, []); // 空依赖，因为函数不依赖外部变量
 
-  const handleCategoryChange = (newCategory) => {
+  // 使用 useCallback 包装 handleCategoryChange
+  const handleCategoryChange = useCallback((newCategory) => {
     setCategory(newCategory);
-    setFilters(prev => ({ ...prev, skip: 0 })); 
+    // 重置状态以触发 useEffect 重新加载
+    setAllNews([]); 
     setNews([]); 
+    setDisplayCount(ITEMS_PER_PAGE); 
     setLoading(true); 
-  }
+    setHasMore(false);
+  }, []); // 空依赖
 
-  const loadMore = () => {
-    setFilters(prevFilters => ({
-      ...prevFilters,
-      skip: prevFilters.skip + prevFilters.limit
-    }));
-    // 注意：加载状态由接下来的 useEffect 处理
-  };
-
-  // Effect for loading news
+  // Effect for loading news (获取全部，然后排序)
   useEffect(() => {
-    console.log("开始获取新闻，分类:", category, "过滤器:", filters);
-    let isMounted = true; // 防止在 unmounted 组件上更新状态
-    const loadNews = async () => {
-      setLoading(true); // 确保每次都设置加载状态
+    console.log("开始获取新闻(方案一)，分类:", category, "过滤器:", filters);
+    let isMounted = true; 
+    const loadAllNews = async () => {
+      setLoading(true); // 开始加载
+      setError(null);
       try {
-        setError(null); 
+        // 请求大量数据 (受后端限制，最多100)
         const fetchedNews = await fetchNews({ 
           category: category === 'all' ? null : category,
           minScore: filters.minScore,
           days: filters.days,
-          limit: filters.limit,
-          skip: filters.skip
+          limit: 100 // 请求后端允许的最大数量
+          // 不再传递 skip
         });
 
-        console.log("获取到的新闻:", fetchedNews);
+        console.log(`获取到 ${fetchedNews.length} 条新闻`);
         
         if (isMounted) {
-          // let processedNews; // 不再需要这个变量
-          if (filters.skip > 0) {
-            // 加载更多：直接追加，不再重新排序
-            setNews(prevNews => [...prevNews, ...fetchedNews]);
+          let sortedNews = [...fetchedNews]; // 创建副本以进行排序
+
+          // 全局排序 (如果需要)
+          if (filters.minScore === 0) {
+            console.log("按发布时间排序...");
+            sortedNews.sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
           } else {
-            // 首次加载或筛选变化：设置新数据，并进行排序（如果需要）
-            let initialNews = fetchedNews;
-            if (filters.minScore === 0) {
-              // 只在首次加载时排序
-              initialNews.sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
-            }
-            setNews(initialNews);
+            // 如果按评分排序，后端已经排序好了 (News.importance_score.desc())
+            console.log("按重要性评分排序 (由后端完成)...");
           }
 
-          setHasMore(fetchedNews.length === filters.limit); 
+          setAllNews(sortedNews); // 存储完整排序列表
+
+          // 设置初始显示的列表
+          const initialDisplay = sortedNews.slice(0, ITEMS_PER_PAGE);
+          setNews(initialDisplay);
+          setDisplayCount(initialDisplay.length); // 更新实际显示的条数
+
+          // 判断是否还有更多
+          setHasMore(initialDisplay.length < sortedNews.length); 
+          console.log(`初始显示 ${initialDisplay.length} 条，总共 ${sortedNews.length} 条，还有更多: ${initialDisplay.length < sortedNews.length}`);
         }
 
       } catch (err) {
         console.error("获取新闻失败:", err);
         if (isMounted) {
           setError("加载新闻失败，请稍后重试。"); 
+          setAllNews([]); // 出错时清空
+          setNews([]);
         }
       } finally {
         if (isMounted) {
-          setLoading(false); 
+          setLoading(false); // 结束加载
         }
       }
     };
 
-    loadNews();
+    loadAllNews();
 
     return () => {
-      isMounted = false; // 清理函数
+      isMounted = false; 
     };
-  }, [category, filters.minScore, filters.days, filters.limit, filters.skip]); 
+  // 依赖项改为 category 和 filters 的值
+  }, [category, filters.minScore, filters.days]); 
 
-  // Effect for loading categories
+  // Effect for loading categories (保持不变)
   useEffect(() => {
     let isMounted = true;
     const loadCategories = async () => {
@@ -218,34 +229,49 @@ function App() {
       }
     };
     loadCategories();
-    return () => {
-      isMounted = false;
-    };
-  }, []); // 空依赖，只运行一次
+    return () => { isMounted = false; };
+  }, []); 
 
-  // --- 结束移动状态和逻辑 ---
+  // 加载更多函数 (纯前端逻辑)
+  const loadMore = useCallback(() => {
+    if (!loading && hasMore) { // 确保不在加载中且确实有更多
+      console.log("加载更多...");
+      setDisplayCount(prevCount => {
+        const newCount = Math.min(prevCount + ITEMS_PER_PAGE, allNews.length);
+        console.log(`更新显示数量: ${newCount}`);
+        
+        // 更新显示的 news 列表
+        setNews(allNews.slice(0, newCount)); 
+        
+        // 更新 hasMore 状态
+        setHasMore(newCount < allNews.length); 
+        console.log(`还有更多: ${newCount < allNews.length}`);
+        
+        return newCount; // 返回新的 displayCount
+      });
+    }
+  }, [loading, hasMore, allNews]); // 依赖加载状态、是否有更多、完整列表
 
-  // --- 3. App 的 return 保持不变，但在 Route 中传递 props ---
+  // --- Router 和 Routes 部分保持不变 ---
   return (
-    <Router basename="/crazynews">
+    <Router>
       <Routes>
-        <Route 
-          path="/" 
-          element={
-            <MainContent 
-              news={news}
-              loading={loading}
-              error={error}
-              category={category}
-              availableCategories={availableCategories}
-              hasMore={hasMore}
-              filters={filters}
-              handleFilterChange={handleFilterChange}
-              handleCategoryChange={handleCategoryChange}
-              loadMore={loadMore}
-            />
-          } 
-        />
+        <Route path="/" element={
+          <MainContent 
+            news={news}
+            loading={loading}
+            error={error}
+            category={category}
+            availableCategories={availableCategories}
+            hasMore={hasMore}
+            filters={filters}
+            handleFilterChange={handleFilterChange}
+            handleCategoryChange={handleCategoryChange}
+            loadMore={loadMore}
+            displayCount={displayCount} // 传递用于调试
+            allNewsCount={allNews.length} // 传递用于调试
+          />
+        } />
         <Route path="/debug-api" element={<ApiDebugTool />} />
         <Route path="/crawler" element={<UrlCrawler />} />
         <Route path="/submit-url" element={<UrlCrawler />} />
