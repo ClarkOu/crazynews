@@ -168,24 +168,18 @@ function App() {
         console.log("获取到的新闻:", fetchedNews);
         
         if (isMounted) {
-          let processedNews;
+          // let processedNews; // 不再需要这个变量
           if (filters.skip > 0) {
-            // 使用函数式更新来合并新闻，避免依赖 news
-            setNews(prevNews => {
-              processedNews = [...prevNews, ...fetchedNews];
-              // 如果 minScore 为 0，则对合并后的列表排序
-              if (filters.minScore === 0) {
-                processedNews.sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
-              }
-              return processedNews;
-            });
+            // 加载更多：直接追加，不再重新排序
+            setNews(prevNews => [...prevNews, ...fetchedNews]);
           } else {
-            // 首次加载或筛选变化，直接设置并排序（如果需要）
-            processedNews = fetchedNews;
+            // 首次加载或筛选变化：设置新数据，并进行排序（如果需要）
+            let initialNews = fetchedNews;
             if (filters.minScore === 0) {
-              processedNews.sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
+              // 只在首次加载时排序
+              initialNews.sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
             }
-            setNews(processedNews);
+            setNews(initialNews);
           }
 
           setHasMore(fetchedNews.length === filters.limit); 
