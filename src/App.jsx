@@ -25,22 +25,25 @@ const MainContent = ({
 }) => {
   return (
     <Layout>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h2>{category === 'all' ? '最新新闻' : `${category} 新闻`}</h2>
-        {/* 可以考虑将 FilterPanel 移到这里或保留在 Layout 中 */}
-      </div>
+      {/* 1. 恢复 FilterPanel 并传递必要的 props */}
+      <FilterPanel 
+         filters={filters} 
+         onFilterChange={handleFilterChange} 
+      />
 
-      {/* 分类标签 */}
-      <div className="category-tabs" style={{ marginBottom: '1.5rem', flexWrap: 'wrap', display: 'flex', gap: '0.5rem' }}>
+      {/* 2. 恢复分类导航的原始类名 */}
+      <div className="category-nav" style={{ marginBottom: '1.5rem', flexWrap: 'wrap', display: 'flex', gap: '0.5rem' }}>
          <button 
-           className={`category-tab ${category === 'all' ? 'active' : ''}`}
+           // 使用 category-btn
+           className={`category-btn ${category === 'all' ? 'active' : ''}`}
            onClick={() => handleCategoryChange('all')}>
            全部
          </button>
          {availableCategories.map(cat => (
            <button 
              key={cat.id} 
-             className={`category-tab ${category === cat.name ? 'active' : ''}`}
+             // 使用 category-btn
+             className={`category-btn ${category === cat.name ? 'active' : ''}`}
              onClick={() => handleCategoryChange(cat.name)}>
              {cat.name}
            </button>
