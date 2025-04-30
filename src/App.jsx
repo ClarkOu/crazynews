@@ -254,7 +254,7 @@ function App() {
 
   // --- Router 和 Routes 部分保持不变 ---
   return (
-    <Router>
+    <Router basename="/crazynews">
       <Routes>
         <Route path="/" element={
           <MainContent 
