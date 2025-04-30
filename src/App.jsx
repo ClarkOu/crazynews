@@ -208,7 +208,7 @@ function App() {
     return () => {
       isMounted = false; // 清理函数
     };
-  }, [category, filters]);
+  }, [category, filters.minScore, filters.days, filters.limit, filters.skip]); 
 
   // Effect for loading categories
   useEffect(() => {
