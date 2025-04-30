@@ -168,23 +168,27 @@ function App() {
         console.log("获取到的新闻:", fetchedNews);
         
         if (isMounted) {
-          // --- 新增排序逻辑 ---
-          let processedNews = fetchedNews; 
-
-          // 如果是加载更多，先合并
+          let processedNews;
           if (filters.skip > 0) {
-            processedNews = [...news, ...fetchedNews]; // 使用之前的 news state
+            // 使用函数式更新来合并新闻，避免依赖 news
+            setNews(prevNews => {
+              processedNews = [...prevNews, ...fetchedNews];
+              // 如果 minScore 为 0，则对合并后的列表排序
+              if (filters.minScore === 0) {
+                processedNews.sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
+              }
+              return processedNews;
+            });
+          } else {
+            // 首次加载或筛选变化，直接设置并排序（如果需要）
+            processedNews = fetchedNews;
+            if (filters.minScore === 0) {
+              processedNews.sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
+            }
+            setNews(processedNews);
           }
 
-          // 如果 minScore 为 0 (即选择“全部”重要性)，则按时间倒序排序
-          if (filters.minScore === 0) {
-            processedNews.sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
-          } 
-          // --- 结束排序逻辑 ---
-
-          // 使用处理后的数据更新状态
-          setNews(processedNews); 
-          setHasMore(fetchedNews.length === filters.limit); // hasMore 逻辑不变，基于本次请求的数量
+          setHasMore(fetchedNews.length === filters.limit); 
         }
 
       } catch (err) {
@@ -204,7 +208,7 @@ function App() {
     return () => {
       isMounted = false; // 清理函数
     };
-  }, [category, filters, news]); // 依赖项
+  }, [category, filters]);
 
   // Effect for loading categories
   useEffect(() => {
