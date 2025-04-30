@@ -1,13 +1,11 @@
-/* frontend/src/App.css */
-/* 全局样式 */
 :root {
     --primary-color: #2c3e50;
     --secondary-color: #34495e;
     --accent-color: #3498db;
     --text-color: #333;
-    --light-text: #f1e7e7;
+    --light-text: #666;
     --lighter-text: #999;
-    --bg-color: #11191f;
+    --bg-color: #f9f9f9;
     --card-bg: #fff;
     --border-color: #eee;
     --success-color: #2ecc71;
